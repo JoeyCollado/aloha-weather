@@ -1,4 +1,4 @@
-import { requireOwner, UnauthorizedError } from "@/lib/auth";
+import { requireOwner } from "@/lib/auth";
 import { collection } from "@/lib/db";
 import { toDateString } from "@/lib/validation";
 import { WeatherSalesTable } from "@/components/WeatherSalesTable";
@@ -17,29 +17,16 @@ export default async function WeatherSalesPage({
 }: {
   searchParams: Promise<{ from?: string; to?: string }>;
 }) {
-  let owner;
-  try {
-    owner = await requireOwner();
-  } catch (err) {
-    if (err instanceof UnauthorizedError) {
-      return (
-        <div className="p-8 text-center">
-          <h2 className="text-xl font-bold mb-2">Access Denied</h2>
-          <p className="text-gray-600">You are signed in, but you do not have the "owner" role.</p>
-        </div>
-      );
-    }
-    throw err;
-  }
-
+  const owner = await requireOwner();
   const ownerId = owner.clerkUserId;
   const params = await searchParams;
 
-  const todayStr = toDateString(new Date());
+  const now = new Date();
+  const todayStr = toDateString(now);
   const to = params.to ?? todayStr;
   const from =
     params.from ??
-    toDateString(new Date(Date.now() - 29 * 24 * 60 * 60 * 1000));
+    toDateString(new Date(now.getTime() - 29 * 24 * 60 * 60 * 1000));
 
   const start = new Date(`${from}T00:00:00`);
   const end = new Date(new Date(`${to}T00:00:00`).getTime() + 24 * 60 * 60 * 1000);
