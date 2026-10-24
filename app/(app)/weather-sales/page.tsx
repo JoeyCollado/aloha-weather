@@ -1,7 +1,8 @@
-import { requireOwner } from "@/lib/auth";
+import { requireOwner, UnauthorizedError } from "@/lib/auth";
 import { collection } from "@/lib/db";
 import { toDateString } from "@/lib/validation";
 import { WeatherSalesTable } from "@/components/WeatherSalesTable";
+import { FiTrendingUp, FiFilter } from "react-icons/fi";
 
 export const dynamic = "force-dynamic";
 
@@ -17,47 +18,44 @@ export default async function WeatherSalesPage({
 }: {
   searchParams: Promise<{ from?: string; to?: string }>;
 }) {
-  const owner = await requireOwner();
+  let owner;
+  try {
+    owner = await requireOwner();
+  } catch (err) {
+    if (err instanceof UnauthorizedError) {
+      return (
+        <div className="p-8 text-center card max-w-md mx-auto mt-20">
+          <h2 className="text-xl font-bold mb-2 text-red-600">Access Denied</h2>
+          <p className="text-gray-600">You do not have the &quot;owner&quot; role.</p>
+        </div>
+      );
+    }
+    throw err;
+  }
+
   const ownerId = owner.clerkUserId;
   const params = await searchParams;
 
   const now = new Date();
   const todayStr = toDateString(now);
   const to = params.to ?? todayStr;
-  const from =
-    params.from ??
-    toDateString(new Date(now.getTime() - 29 * 24 * 60 * 60 * 1000));
+  const from = params.from ?? toDateString(new Date(now.getTime() - 29 * 24 * 60 * 60 * 1000));
 
   const start = new Date(`${from}T00:00:00`);
   const end = new Date(new Date(`${to}T00:00:00`).getTime() + 24 * 60 * 60 * 1000);
 
-  // Sales grouped by date
+  // Fetch sales
   const salesByDate = await (await collection("sales"))
     .aggregate([
-      {
-        $match: {
-          ownerId,
-          status: "paid",
-          createdAt: { $gte: start, $lt: end },
-        },
-      },
-      {
-        $group: {
-          _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
-          total: { $sum: "$total" },
-          count: { $sum: 1 },
-        },
-      },
+      { $match: { ownerId, status: "paid", createdAt: { $gte: start, $lt: end } } },
+      { $group: { _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } }, total: { $sum: "$total" }, count: { $sum: 1 } } },
       { $sort: { _id: 1 } },
     ])
     .toArray();
 
-  // Notes in the same range
+  // Fetch weather notes
   const notes = await (await collection("dailyNotes"))
-    .find({
-      ownerId,
-      date: { $gte: from, $lte: to },
-    })
+    .find({ ownerId, date: { $gte: from, $lte: to } })
     .toArray();
 
   const noteByDate = new Map(notes.map((n) => [n.date as string, n]));
@@ -73,20 +71,15 @@ export default async function WeatherSalesPage({
     };
   });
 
-  // Also include days with a note but no sales (useful signal!)
+  // Include days with notes but no sales (useful to show "0 sales on rainy day")
   for (const n of notes) {
     if (!rows.find((r) => r.date === n.date)) {
-      rows.push({
-        date: n.date as string,
-        weather: n.weather as string,
-        orderCount: 0,
-        salesTotal: 0,
-      });
+      rows.push({ date: n.date as string, weather: n.weather as string, orderCount: 0, salesTotal: 0 });
     }
   }
   rows.sort((a, b) => (a.date < b.date ? 1 : -1)); // newest first
 
-  // Weather buckets
+  // Calculate buckets
   const buckets = new Map<string, { days: number; sales: number; orders: number }>();
   for (const r of rows) {
     if (r.weather === "—") continue;
@@ -105,25 +98,28 @@ export default async function WeatherSalesPage({
   bucketRows.sort((a, b) => b.avgSales - a.avgSales);
 
   return (
-    <div className="space-y-6">
-      <header>
-        <h1 className="text-2xl font-semibold">Weather vs Sales</h1>
-        <p className="muted text-sm">
-          Compare daily sales against logged weather. Range: {from} → {to}
-        </p>
+    <div className="space-y-8">
+      <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 tracking-tight flex items-center gap-2">
+            <FiTrendingUp className="text-[var(--brand)]" /> Weather vs Sales
+          </h1>
+          <p className="text-gray-500 mt-1">Analyze how weather conditions affect your daily revenue.</p>
+        </div>
       </header>
 
-      <form className="card grid gap-3 sm:grid-cols-[1fr_1fr_auto]" method="get">
+      {/* Date Filter */}
+      <form className="card grid gap-4 sm:grid-cols-[1fr_1fr_auto] items-end border-t-4 border-t-[var(--brand)]" method="get">
         <div>
-          <label className="label" htmlFor="from">From</label>
+          <label className="label text-gray-600 font-semibold flex items-center gap-2"><FiFilter /> From Date</label>
           <input id="from" name="from" type="date" className="input" defaultValue={from} />
         </div>
         <div>
-          <label className="label" htmlFor="to">To</label>
+          <label className="label text-gray-600 font-semibold flex items-center gap-2"><FiFilter /> To Date</label>
           <input id="to" name="to" type="date" className="input" defaultValue={to} />
         </div>
-        <div className="flex items-end">
-          <button className="btn" type="submit">Apply</button>
+        <div>
+          <button className="btn w-full sm:w-auto px-8" type="submit">Apply Filter</button>
         </div>
       </form>
 

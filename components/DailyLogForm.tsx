@@ -2,6 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { FiSave, FiAlertCircle, FiCheckCircle } from "react-icons/fi";
 
 type Weather = "sunny" | "cloudy" | "rainy" | "stormy" | "other";
 
@@ -70,7 +72,7 @@ export function DailyLogForm({ initial }: Props) {
         return;
       }
 
-      setSuccess(isEdit ? "Note updated." : "Note saved.");
+      setSuccess(isEdit ? "Note updated successfully." : "Note saved successfully.");
       startTransition(() => router.refresh());
     } catch (err) {
       setError(err instanceof Error ? err.message : "Network error");
@@ -82,8 +84,13 @@ export function DailyLogForm({ initial }: Props) {
   const today = new Date().toISOString().slice(0, 10);
 
   return (
-    <form onSubmit={onSubmit} className="card space-y-4">
-      <div className="grid gap-4 sm:grid-cols-2">
+    <motion.form 
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      onSubmit={onSubmit} 
+      className="card space-y-6 border-t-4 border-t-[var(--brand)]"
+    >
+      <div className="grid gap-6 sm:grid-cols-2">
         <div>
           <label className="label" htmlFor="date">Date</label>
           <input
@@ -93,14 +100,14 @@ export function DailyLogForm({ initial }: Props) {
             value={date}
             max={today}
             onChange={(e) => setDate(e.target.value)}
-            disabled={initial.id !== null} // once created, date is fixed
+            disabled={initial.id !== null}
             required
           />
-          {initial.id !== null ? (
-            <p className="muted mt-1 text-xs">
-              A note already exists for {initial.date}. Pick a future date to create a new one.
+          {initial.id !== null && (
+            <p className="text-xs text-orange-600 mt-1 font-medium">
+              A note already exists for {initial.date}. You can only edit the weather and remarks.
             </p>
-          ) : null}
+          )}
         </div>
 
         <div>
@@ -111,11 +118,11 @@ export function DailyLogForm({ initial }: Props) {
             value={weather}
             onChange={(e) => setWeather(e.target.value as Weather)}
           >
-            <option value="sunny">Sunny</option>
-            <option value="cloudy">Cloudy</option>
-            <option value="rainy">Rainy</option>
-            <option value="stormy">Stormy</option>
-            <option value="other">Other</option>
+            <option value="sunny">☀️ Sunny</option>
+            <option value="cloudy">☁️ Cloudy</option>
+            <option value="rainy">🌧️ Rainy</option>
+            <option value="stormy">⛈️ Stormy</option>
+            <option value="other">🌤️ Other</option>
           </select>
         </div>
       </div>
@@ -143,21 +150,28 @@ export function DailyLogForm({ initial }: Props) {
           className="input"
           value={orderCount}
           onChange={(e) => setOrderCount(e.target.value)}
-          placeholder="Leave blank to derive from sales"
+          placeholder="Leave blank to derive from POS sales"
         />
       </div>
 
-      {error ? <p className="error">{error}</p> : null}
-      {success ? <p className="success">{success}</p> : null}
+      <AnimatePresence>
+        {error && (
+          <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="bg-red-50 text-red-700 p-3 rounded-lg flex items-center gap-2 text-sm border border-red-100">
+            <FiAlertCircle /> {error}
+          </motion.div>
+        )}
+        {success && (
+          <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="bg-green-50 text-green-700 p-3 rounded-lg flex items-center gap-2 text-sm border border-green-100">
+            <FiCheckCircle /> {success}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-      <div className="flex items-center gap-3">
-        <button className="btn" type="submit" disabled={saving || pending}>
-          {saving ? "Saving…" : isEdit ? "Update note" : "Save note"}
+      <div className="flex items-center justify-end gap-3 pt-4 border-t border-[var(--border)]">
+        <button className="btn flex items-center gap-2 px-6" type="submit" disabled={saving || pending}>
+          {saving ? "Saving..." : <><FiSave size={18} /> {isEdit ? "Update Note" : "Save Note"}</>}
         </button>
-        {initial.id !== null ? (
-          <span className="muted text-xs">Editing existing note for {initial.date}</span>
-        ) : null}
       </div>
-    </form>
+    </motion.form>
   );
 }

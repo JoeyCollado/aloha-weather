@@ -3,6 +3,7 @@ import { requireOwner, UnauthorizedError } from "@/lib/auth";
 import { collection } from "@/lib/db";
 import { toDateString } from "@/lib/validation";
 import { StatCard } from "@/components/StatCard";
+import { FiCloud, FiTrendingUp, FiShoppingBag, FiDollarSign, FiAlertCircle } from "react-icons/fi";
 
 export const dynamic = "force-dynamic";
 
@@ -20,12 +21,11 @@ export default async function DashboardPage() {
     owner = await requireOwner();
   } catch (err) {
     if (err instanceof UnauthorizedError) {
-      // If unauthorized, render a message instead of redirecting (prevents loop)
       return (
-        <div className="p-8 text-center">
+        <div className="p-8 text-center card max-w-md mx-auto mt-20">
+          <FiAlertCircle className="text-red-500 mx-auto mb-4" size={48} />
           <h2 className="text-xl font-bold mb-2">Access Denied</h2>
-          <p className="text-gray-600">You are signed in, but you do not have the &quot;owner&quot; role.</p>
-          <p className="text-gray-600 mt-2">Please go to the Clerk Dashboard, add {"{\"role\": \"owner\"}"} to your Public Metadata, and sign out and back in.</p>
+          <p className="text-gray-600">You do not have the &quot;owner&quot; role.</p>
         </div>
       );
     }
@@ -33,7 +33,6 @@ export default async function DashboardPage() {
   }
   
   const ownerId = owner.clerkUserId;
-
   const today = toDateString(new Date());
   const todayStart = new Date(`${today}T00:00:00`);
   const sevenDaysAgo = new Date(todayStart.getTime() - 6 * 24 * 60 * 60 * 1000);
@@ -48,43 +47,18 @@ export default async function DashboardPage() {
   ] = await Promise.all([
     (await collection("dailyNotes")).findOne({ ownerId, date: today }),
     (await collection("sales")).aggregate([
-      {
-        $match: {
-          ownerId,
-          status: "paid",
-          createdAt: { $gte: todayStart },
-        },
-      },
-      {
-        $group: {
-          _id: null,
-          total: { $sum: "$total" },
-          count: { $sum: 1 },
-        },
-      },
+      { $match: { ownerId, status: "paid", createdAt: { $gte: todayStart } } },
+      { $group: { _id: null, total: { $sum: "$total" }, count: { $sum: 1 } } },
     ]).toArray(),
     (await collection("sales")).aggregate([
-      {
-        $match: {
-          ownerId,
-          status: "paid",
-          createdAt: { $gte: sevenDaysAgo },
-        },
-      },
-      {
-        $group: {
-          _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
-          total: { $sum: "$total" },
-          count: { $sum: 1 },
-        },
-      },
-      { $sort: { _id: 1 } },
+      { $match: { ownerId, status: "paid", createdAt: { $gte: sevenDaysAgo } } },
+      { $group: { _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } }, total: { $sum: "$total" } } },
     ]).toArray(),
     (await collection("items")).countDocuments({ ownerId }),
     (await collection("items"))
       .find({ ownerId, $expr: { $lte: ["$quantity", "$reorderLevel"] } })
       .project<LowStockItem>({ name: 1, quantity: 1, reorderLevel: 1, unit: 1 })
-      .limit(20)
+      .limit(10)
       .toArray(),
     (await collection("items")).aggregate([
       { $match: { ownerId } },
@@ -98,82 +72,118 @@ export default async function DashboardPage() {
   const totalStockValue = totalStockValueAgg[0]?.value ?? 0;
 
   return (
-    <div className="space-y-6">
-      <header>
-        <h1 className="text-2xl font-semibold">Dashboard</h1>
-        <p className="muted text-sm">
-          {new Date().toLocaleDateString("en-PH", {
-            weekday: "long",
-            year: "numeric",
-            month: "long",
-            day: "numeric",
-          })}
-        </p>
+    <div className="space-y-8">
+      <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Dashboard Overview</h1>
+          <p className="text-gray-500 mt-1">Here is your daily snapshot.</p>
+        </div>
+        <div className="text-sm font-medium text-gray-500 bg-white px-4 py-2 rounded-lg border border-[var(--border)] shadow-sm">
+          {new Date().toLocaleDateString("en-PH", { weekday: "long", month: "long", day: "numeric" })}
+        </div>
       </header>
 
-      <section className="card">
-        <div className="flex items-start justify-between gap-4">
+      {/* Today's Weather Widget */}
+      <section className="card border-l-4 border-l-[var(--brand)] flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <div className="p-4 bg-orange-50 text-[var(--brand)] rounded-xl">
+            <FiCloud size={32} />
+          </div>
           <div>
-            <div className="muted text-xs uppercase tracking-wide">Today&apos;s Weather</div>
+            <div className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Today&apos;s Weather</div>
             {todayNote ? (
               <>
-                <div className="mt-1 text-2xl font-semibold capitalize">{todayNote.weather}</div>
-                {todayNote.remarks ? (
-                  <p className="muted mt-1 text-sm">{todayNote.remarks}</p>
-                ) : null}
+                <div className="text-2xl font-bold text-gray-900 capitalize mt-1">{todayNote.weather}</div>
+                {todayNote.remarks && <p className="text-sm text-gray-500 mt-1">{todayNote.remarks}</p>}
               </>
             ) : (
-              <div className="mt-1 text-lg">No note logged yet for today.</div>
+              <div className="text-lg font-medium text-gray-400 mt-1">No weather note logged yet.</div>
             )}
           </div>
-          <Link href="/daily-log" className="btn">
-            {todayNote ? "Edit" : "Log now"}
-          </Link>
+        </div>
+        <Link href="/daily-log" className="btn whitespace-nowrap">
+          {todayNote ? "Edit Log" : "Log Weather"}
+        </Link>
+      </section>
+
+      {/* Stat Cards Grid */}
+      <section className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="card flex items-center gap-4">
+          <div className="p-3 bg-green-50 text-green-600 rounded-lg">
+            <FiDollarSign size={24} />
+          </div>
+          <div>
+            <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Today&apos;s Sales</div>
+            <div className="text-2xl font-bold text-gray-900 mt-1">₱{todaySales.toFixed(2)}</div>
+            <div className="text-xs text-gray-400">{todayCount} orders</div>
+          </div>
+        </div>
+
+        <div className="card flex items-center gap-4">
+          <div className="p-3 bg-blue-50 text-blue-600 rounded-lg">
+            <FiTrendingUp size={24} />
+          </div>
+          <div>
+            <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Last 7 Days</div>
+            <div className="text-2xl font-bold text-gray-900 mt-1">₱{last7Total.toFixed(2)}</div>
+            <div className="text-xs text-gray-400">{last7Agg.length} active days</div>
+          </div>
+        </div>
+
+        <div className="card flex items-center gap-4">
+          <div className="p-3 bg-indigo-50 text-indigo-600 rounded-lg">
+            <FiShoppingBag size={24} />
+          </div>
+          <div>
+            <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Inventory Items</div>
+            <div className="text-2xl font-bold text-gray-900 mt-1">{itemsTotal}</div>
+          </div>
+        </div>
+
+        <div className="card flex items-center gap-4">
+          <div className="p-3 bg-gray-100 text-gray-600 rounded-lg">
+            <FiDollarSign size={24} />
+          </div>
+          <div>
+            <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Stock Value</div>
+            <div className="text-2xl font-bold text-gray-900 mt-1">₱{totalStockValue.toFixed(2)}</div>
+          </div>
         </div>
       </section>
 
-      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard
-          label="Today's Sales"
-          value={`₱${todaySales.toFixed(2)}`}
-          hint={`${todayCount} order${todayCount === 1 ? "" : "s"}`}
-        />
-        <StatCard
-          label="Last 7 Days"
-          value={`₱${last7Total.toFixed(2)}`}
-          hint={`${last7Agg.length} day${last7Agg.length === 1 ? "" : "s"} with sales`}
-        />
-        <StatCard
-          label="Inventory Items"
-          value={itemsTotal}
-          hint={`${lowStockDocs.length} low-stock alert${lowStockDocs.length === 1 ? "" : "s"}`}
-          tone={lowStockDocs.length > 0 ? "warning" : "default"}
-        />
-        <StatCard
-          label="Total Stock Value"
-          value={`₱${totalStockValue.toFixed(2)}`}
-          hint="quantity × unit cost"
-        />
-      </section>
-
-      <section className="card">
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-lg font-semibold">Low-Stock Alerts</h2>
-          <span className="muted text-xs">quantity ≤ reorder level</span>
+      {/* Low Stock Table */}
+      <section className="card p-0 overflow-hidden">
+        <div className="p-6 border-b border-[var(--border)] bg-gray-50 flex items-center justify-between">
+          <h2 className="font-semibold text-gray-900">Low-Stock Alerts</h2>
+          <span className="text-xs font-medium text-gray-500 bg-white px-2 py-1 rounded border border-[var(--border)]">Quantity ≤ Reorder Level</span>
         </div>
         {lowStockDocs.length === 0 ? (
-          <p className="muted text-sm">All items are above their reorder levels.</p>
+          <div className="p-8 text-center text-gray-500">
+            All items are currently above their reorder levels.
+          </div>
         ) : (
-          <ul className="divide-y" style={{ borderColor: "var(--border)" }}>
-            {lowStockDocs.map((item) => (
-              <li key={String(item._id)} className="flex items-center justify-between py-2">
-                <span className="text-sm">{item.name}</span>
-                <span className="text-sm" style={{ color: "var(--danger)" }}>
-                  {item.quantity} {item.unit} (reorder at {item.reorderLevel})
-                </span>
-              </li>
-            ))}
-          </ul>
+          <table className="w-full text-sm text-left">
+            <thead className="bg-white border-b border-[var(--border)] text-gray-500">
+              <tr>
+                <th className="px-6 py-4 font-semibold">Item Name</th>
+                <th className="px-6 py-4 font-semibold text-right">Current Stock</th>
+                <th className="px-6 py-4 font-semibold text-right">Reorder Level</th>
+              </tr>
+            </thead>
+            <tbody>
+              {lowStockDocs.map((item) => (
+                <tr key={String(item._id)} className="border-b border-[var(--border)] last:border-0 hover:bg-gray-50">
+                  <td className="px-6 py-4 font-medium text-gray-900">{item.name}</td>
+                  <td className="px-6 py-4 text-right font-bold text-red-600">
+                    {item.quantity} {item.unit}
+                  </td>
+                  <td className="px-6 py-4 text-right text-gray-500">
+                    {item.reorderLevel} {item.unit}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         )}
       </section>
     </div>

@@ -1,6 +1,10 @@
 import type { NextConfig } from "next";
+import path from "path";
 
 const nextConfig: NextConfig = {
+  turbopack: {
+    root: path.resolve(process.cwd()), // Forces resolution from aloha-weather/
+  },
   reactStrictMode: true,
   poweredByHeader: false,
   async headers() {

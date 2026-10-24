@@ -10,26 +10,28 @@
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "db:indexes": "tsx scripts/ensure-indexes.ts",
-    "db:export-xml": "tsx scripts/export-xml.ts",
     "db:export": "tsx scripts/export-xml.ts"
   },
   "dependencies": {
     "@clerk/nextjs": "^6.0.0",
     "fast-xml-parser": "^4.5.0",
+    "framer-motion": "^14.6.0",
     "mongodb": "^6.9.0",
     "next": "^15.0.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "react-icons": "^5.7.0",
     "zod": "^3.23.8"
   },
   "devDependencies": {
+    "@tailwindcss/postcss": "^4.3.3",
     "@types/node": "^22.7.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "autoprefixer": "^10.4.20",
     "dotenv": "^18.0.9",
-    "postcss": "^8.4.47",
-    "tailwindcss": "^3.4.13",
+    "postcss": "^8.5.31",
+    "tailwindcss": "^4.3.3",
     "tsx": "^4.19.0",
     "typescript": "^5.6.0"
   }
