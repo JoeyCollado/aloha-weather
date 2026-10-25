@@ -30,6 +30,8 @@
     "@types/react-dom": "^19.0.0",
     "autoprefixer": "^10.4.20",
     "dotenv": "^18.0.9",
+    "eslint": "^10.13.0",
+    "eslint-config-next": "^16.4.3",
     "postcss": "^8.5.31",
     "tailwindcss": "^4.3.3",
     "tsx": "^4.19.0",
