@@ -1,8 +1,8 @@
 import Link from "next/link";
-import { requireOwner, UnauthorizedError } from "@/lib/auth";
+import { requireOwner } from "@/lib/auth";
 import { collection } from "@/lib/db";
 import { toDateString } from "@/lib/validation";
-import { FiCloud, FiTrendingUp, FiShoppingBag, FiAlertCircle, FiCreditCard } from "react-icons/fi";
+import { FiCloud, FiTrendingUp, FiShoppingBag, FiCreditCard } from "react-icons/fi";
 
 export const dynamic = "force-dynamic";
 
@@ -15,23 +15,10 @@ interface LowStockItem {
 }
 
 export default async function DashboardPage() {
-  let owner;
-  try {
-    owner = await requireOwner();
-  } catch (err) {
-    if (err instanceof UnauthorizedError) {
-      return (
-        <div className="p-8 text-center card max-w-md mx-auto mt-20">
-          <FiAlertCircle className="text-red-500 mx-auto mb-4" size={48} />
-          <h2 className="text-xl font-bold mb-2">Access Denied</h2>
-          <p className="text-gray-600">You do not have the &quot;owner&quot; role.</p>
-        </div>
-      );
-    }
-    throw err;
-  }
-  
+  // Layout handles the unauthorized check globally
+  const owner = await requireOwner();
   const ownerId = owner.clerkUserId;
+  
   const today = toDateString(new Date());
   const todayStart = new Date(`${today}T00:00:00`);
   const sevenDaysAgo = new Date(todayStart.getTime() - 6 * 24 * 60 * 60 * 1000);

@@ -1,4 +1,4 @@
-import { requireOwner, UnauthorizedError } from "@/lib/auth";
+import { requireOwner } from "@/lib/auth";
 import { collection } from "@/lib/db";
 import { toDateString } from "@/lib/validation";
 import { WeatherSalesTable } from "@/components/WeatherSalesTable";
@@ -18,22 +18,10 @@ export default async function WeatherSalesPage({
 }: {
   searchParams: Promise<{ from?: string; to?: string }>;
 }) {
-  let owner;
-  try {
-    owner = await requireOwner();
-  } catch (err) {
-    if (err instanceof UnauthorizedError) {
-      return (
-        <div className="p-8 text-center card max-w-md mx-auto mt-20">
-          <h2 className="text-xl font-bold mb-2 text-red-600">Access Denied</h2>
-          <p className="text-gray-600">You do not have the &quot;owner&quot; role.</p>
-        </div>
-      );
-    }
-    throw err;
-  }
-
+  // Layout handles the unauthorized check globally
+  const owner = await requireOwner();
   const ownerId = owner.clerkUserId;
+  
   const params = await searchParams;
 
   const now = new Date();

@@ -1,8 +1,8 @@
-import { requireOwner, UnauthorizedError } from "@/lib/auth";
+import { requireOwner } from "@/lib/auth";
 import { collection } from "@/lib/db";
 import { toDateString } from "@/lib/validation";
 import { DailyLogForm } from "@/components/DailyLogForm";
-import { FiEdit3, FiAlertCircle } from "react-icons/fi";
+import { FiEdit3 } from "react-icons/fi";
 
 export const dynamic = "force-dynamic";
 
@@ -15,20 +15,8 @@ interface DailyNoteDoc {
 }
 
 export default async function DailyLogPage() {
-  let owner;
-  try {
-    owner = await requireOwner();
-  } catch (err) {
-    if (err instanceof UnauthorizedError) {
-      return (
-        <div className="p-8 text-center card max-w-md mx-auto mt-20">
-          <FiAlertCircle className="text-red-500 mx-auto mb-4" size={48} />
-          <h2 className="text-xl font-bold mb-2">Access Denied</h2>
-        </div>
-      );
-    }
-    throw err;
-  }
+  // Layout handles the unauthorized check globally
+  const owner = await requireOwner();
 
   const today = toDateString(new Date());
   const todayNote = await (await collection("dailyNotes")).findOne({
