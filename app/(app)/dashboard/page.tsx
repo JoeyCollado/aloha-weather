@@ -2,8 +2,7 @@ import Link from "next/link";
 import { requireOwner, UnauthorizedError } from "@/lib/auth";
 import { collection } from "@/lib/db";
 import { toDateString } from "@/lib/validation";
-import { StatCard } from "@/components/StatCard";
-import { FiCloud, FiTrendingUp, FiShoppingBag, FiDollarSign, FiAlertCircle } from "react-icons/fi";
+import { FiCloud, FiTrendingUp, FiShoppingBag, FiAlertCircle, FiCreditCard } from "react-icons/fi";
 
 export const dynamic = "force-dynamic";
 
@@ -78,15 +77,15 @@ export default async function DashboardPage() {
           <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Dashboard Overview</h1>
           <p className="text-gray-500 mt-1">Here is your daily snapshot.</p>
         </div>
-        <div className="text-sm font-medium text-gray-500 bg-white px-4 py-2 rounded-lg border border-[var(--border)] shadow-sm">
+        <div className="text-sm font-medium text-gray-500 bg-white px-4 py-2 rounded-lg border border-(--border) shadow-sm">
           {new Date().toLocaleDateString("en-PH", { weekday: "long", month: "long", day: "numeric" })}
         </div>
       </header>
 
       {/* Today's Weather Widget */}
-      <section className="card border-l-4 border-l-[var(--brand)] flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <section className="card border-l-4 border-l-(--brand) flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
-          <div className="p-4 bg-orange-50 text-[var(--brand)] rounded-xl">
+          <div className="p-4 bg-orange-50 text-(--brand) rounded-xl">
             <FiCloud size={32} />
           </div>
           <div>
@@ -110,7 +109,7 @@ export default async function DashboardPage() {
       <section className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
         <div className="card flex items-center gap-4">
           <div className="p-3 bg-green-50 text-green-600 rounded-lg">
-            <FiDollarSign size={24} />
+            <FiCreditCard size={24} />
           </div>
           <div>
             <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Today&apos;s Sales</div>
@@ -142,7 +141,7 @@ export default async function DashboardPage() {
 
         <div className="card flex items-center gap-4">
           <div className="p-3 bg-gray-100 text-gray-600 rounded-lg">
-            <FiDollarSign size={24} />
+            <FiCreditCard size={24} />
           </div>
           <div>
             <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Stock Value</div>
@@ -153,9 +152,9 @@ export default async function DashboardPage() {
 
       {/* Low Stock Table */}
       <section className="card p-0 overflow-hidden">
-        <div className="p-6 border-b border-[var(--border)] bg-gray-50 flex items-center justify-between">
+        <div className="p-6 border-b border-(--border) bg-gray-50 flex items-center justify-between">
           <h2 className="font-semibold text-gray-900">Low-Stock Alerts</h2>
-          <span className="text-xs font-medium text-gray-500 bg-white px-2 py-1 rounded border border-[var(--border)]">Quantity ≤ Reorder Level</span>
+          <span className="text-xs font-medium text-gray-500 bg-white px-2 py-1 rounded border border-(--border)">Quantity ≤ Reorder Level</span>
         </div>
         {lowStockDocs.length === 0 ? (
           <div className="p-8 text-center text-gray-500">
@@ -163,7 +162,7 @@ export default async function DashboardPage() {
           </div>
         ) : (
           <table className="w-full text-sm text-left">
-            <thead className="bg-white border-b border-[var(--border)] text-gray-500">
+            <thead className="bg-white border-b border-(--border) text-gray-500">
               <tr>
                 <th className="px-6 py-4 font-semibold">Item Name</th>
                 <th className="px-6 py-4 font-semibold text-right">Current Stock</th>
@@ -172,13 +171,19 @@ export default async function DashboardPage() {
             </thead>
             <tbody>
               {lowStockDocs.map((item) => (
-                <tr key={String(item._id)} className="border-b border-[var(--border)] last:border-0 hover:bg-gray-50">
+                <tr key={String(item._id)} className="border-b border-(--border) last:border-0 hover:bg-gray-50">
                   <td className="px-6 py-4 font-medium text-gray-900">{item.name}</td>
                   <td className="px-6 py-4 text-right font-bold text-red-600">
-                    {item.quantity} {item.unit}
+                    <div className="flex items-center justify-end gap-1.5">
+                      <span>{item.quantity}</span>
+                      <span className="text-xs font-normal text-gray-400">/ {item.unit}</span>
+                    </div>
                   </td>
                   <td className="px-6 py-4 text-right text-gray-500">
-                    {item.reorderLevel} {item.unit}
+                    <div className="flex items-center justify-end gap-1.5">
+                      <span>{item.reorderLevel}</span>
+                      <span className="text-xs font-normal text-gray-400">/ {item.unit}</span>
+                    </div>
                   </td>
                 </tr>
               ))}

@@ -9,8 +9,9 @@ const links = [
   { href: "/weather-sales", label: "Weather vs Sales", icon: FiTrendingUp },
 ];
 
-export function Nav() {
+export function Nav({ onLinkClick }: { onLinkClick?: () => void }) {
   const pathname = usePathname();
+  
   return (
     <nav className="flex flex-col gap-1">
       {links.map((link) => {
@@ -21,6 +22,7 @@ export function Nav() {
           <Link
             key={link.href}
             href={link.href}
+            onClick={onLinkClick}
             className={`rounded-lg px-4 py-3 text-sm font-medium flex items-center gap-3 transition-all ${
               active 
                 ? "bg-[var(--brand-50)] text-[var(--brand-700)]" 
