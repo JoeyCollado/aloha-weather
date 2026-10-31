@@ -34,7 +34,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </div>
             <div>
               <div className="text-lg font-bold text-gray-900 leading-tight">Aloha Weather</div>
-              <div className="text-xs text-gray-500 font-medium">Aloha RMR & Wakito's Pizza</div>
+              <div className="text-xs text-gray-500 font-medium">Aloha RMR & Wakito&apos;s Pizza</div>
             </div>
           </div>
           <button 
